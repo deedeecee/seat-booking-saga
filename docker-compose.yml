@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: saga-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_USER: saga
       POSTGRES_PASSWORD: saga
@@ -20,6 +21,7 @@ services:
   kafka:
     image: apache/kafka:4.0.0
     container_name: saga-kafka
+    restart: unless-stopped
     ports:
       - "9092:9092"
     environment:
@@ -43,6 +45,68 @@ services:
       timeout: 10s
       retries: 12
       start_period: 20s
+
+  booking-service:
+    image: docker.io/library/booking-service:0.0.1-SNAPSHOT
+    container_name: saga-booking-service
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/booking_db
+      DB_USER: saga
+      DB_PASSWORD: saga
+      KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      # 15 minutes: Step 7's 5s was tuned for watching the reaper fire in a
+      # demo. Under real load, inventory's single-threaded consumer can take
+      # minutes to work through a backlog, and this must stay well clear of
+      # that or it reaps bookings before the saga gets a chance to resolve
+      # them naturally.
+      BOOKING_SAGA_TIMEOUT_SECONDS: "900"
+      INVENTORY_DB_URL: jdbc:postgresql://postgres:5432/inventory_db
+      PAYMENT_DB_URL: jdbc:postgresql://postgres:5432/payment_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  inventory-service:
+    image: docker.io/library/inventory-service:0.0.1-SNAPSHOT
+    container_name: saga-inventory-service
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/inventory_db
+      DB_USER: saga
+      DB_PASSWORD: saga
+      KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      # Same reasoning as booking's saga timeout above: a seat held behind
+      # the same backlog could expire before ConfirmSeats ever arrives.
+      INVENTORY_HOLD_DURATION_SECONDS: "900"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  payment-service:
+    image: docker.io/library/payment-service:0.0.1-SNAPSHOT
+    container_name: saga-payment-service
+    restart: unless-stopped
+    ports:
+      - "8083:8083"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/payment_db
+      DB_USER: saga
+      DB_PASSWORD: saga
+      KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
 
 volumes:
   pgdata:
