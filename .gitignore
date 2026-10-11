@@ -31,3 +31,14 @@ build/
 
 ### VS Code ###
 .vscode/
+
+*.log
+*-log.txt
+*-dump.txt
+extracted-*.yaml
+/findstr
+*-command.json
+*-booking.json
+seed-show.json
+simulated-seats-held.json
+manual-test-insert.sql
