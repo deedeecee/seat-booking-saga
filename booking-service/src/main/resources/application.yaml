@@ -10,6 +10,15 @@ spring:
     password: ${DB_PASSWORD:saga}
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+
+consistency:
+  inventory-db-url: ${INVENTORY_DB_URL:jdbc:postgresql://localhost:5432/inventory_db}
+  payment-db-url: ${PAYMENT_DB_URL:jdbc:postgresql://localhost:5432/payment_db}
+  max-non-final-age-seconds: ${CONSISTENCY_MAX_NON_FINAL_AGE_SECONDS:120}
 
 management:
   endpoints:
