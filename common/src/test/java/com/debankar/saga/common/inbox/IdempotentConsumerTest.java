@@ -3,6 +3,7 @@ package com.debankar.saga.common.inbox;
 import com.debankar.saga.common.messaging.MessageEnvelope;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -68,7 +69,7 @@ class IdempotentConsumerTest {
     private IdempotentConsumer newConsumer() {
         TransactionTemplate transactionTemplate =
                 new TransactionTemplate(new DataSourceTransactionManager(dataSource));
-        return new IdempotentConsumer(new InboxDao(jdbcTemplate), transactionTemplate);
+        return new IdempotentConsumer(new InboxDao(jdbcTemplate), transactionTemplate, new SimpleMeterRegistry());
     }
 
     private MessageEnvelope envelope(UUID messageId) {

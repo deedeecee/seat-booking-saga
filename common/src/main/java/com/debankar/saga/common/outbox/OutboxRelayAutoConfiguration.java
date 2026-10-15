@@ -3,6 +3,8 @@ package com.debankar.saga.common.outbox;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -14,12 +16,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/**
- * Wires the outbox relay into a service. Imported explicitly by each
- * service's {@code @SpringBootApplication} class rather than picked up by
- * component scanning, so which services run an outbox relay is visible at a
- * glance from their application class.
- */
 @Configuration(proxyBeanMethods = false)
 @EnableScheduling
 public class OutboxRelayAutoConfiguration {
@@ -29,11 +25,6 @@ public class OutboxRelayAutoConfiguration {
         return new OutboxDao(jdbcTemplate);
     }
 
-    /**
-     * A mapper dedicated to outbox envelopes, kept separate from whatever
-     * mapper Spring MVC ends up using for HTTP JSON later, so the two never
-     * fight over configuration or bean priority.
-     */
     @Bean
     public ObjectMapper outboxObjectMapper() {
         return new ObjectMapper()
@@ -54,6 +45,15 @@ public class OutboxRelayAutoConfiguration {
     @Bean
     public OutboxRelayScheduler outboxRelayScheduler(OutboxRelay outboxRelay) {
         return new OutboxRelayScheduler(outboxRelay);
+    }
+
+    // Queried on demand at scrape time, not polled separately — always
+    // reflects the real row count, with no refresh logic to keep in sync.
+    @Bean
+    public Gauge outboxBacklogGauge(OutboxDao outboxDao, MeterRegistry meterRegistry) {
+        return Gauge.builder("saga.outbox.backlog", outboxDao, OutboxDao::countUnpublished)
+                .description("Outbox rows not yet published to Kafka")
+                .register(meterRegistry);
     }
 
     static class OutboxRelayScheduler {

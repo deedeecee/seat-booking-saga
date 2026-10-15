@@ -1,16 +1,12 @@
 package com.debankar.saga.common.inbox;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/**
- * Wires the idempotent-consumer helper into a service. Imported explicitly
- * by each service's {@code @SpringBootApplication} class, matching how
- * {@code OutboxRelayAutoConfiguration} is imported.
- */
 @Configuration(proxyBeanMethods = false)
 public class IdempotentConsumerAutoConfiguration {
 
@@ -21,7 +17,8 @@ public class IdempotentConsumerAutoConfiguration {
 
     @Bean
     public IdempotentConsumer idempotentConsumer(InboxDao inboxDao,
-                                                 PlatformTransactionManager transactionManager) {
-        return new IdempotentConsumer(inboxDao, new TransactionTemplate(transactionManager));
+                                                 PlatformTransactionManager transactionManager,
+                                                 MeterRegistry meterRegistry) {
+        return new IdempotentConsumer(inboxDao, new TransactionTemplate(transactionManager), meterRegistry);
     }
 }

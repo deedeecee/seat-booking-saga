@@ -77,4 +77,12 @@ public class OutboxDao {
                 id
         );
     }
+
+    public int countUnpublished() {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM outbox_message WHERE published_at IS NULL",
+                Integer.class
+        );
+        return count == null ? 0 : count;
+    }
 }

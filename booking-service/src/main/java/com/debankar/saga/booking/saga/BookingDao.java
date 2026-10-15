@@ -127,4 +127,10 @@ public class BookingDao {
             throw new IllegalStateException("Failed to deserialize seatIds", e);
         }
     }
+
+    public long countByState(BookingState state) {
+        Long count = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM booking WHERE state = ?", Long.class, state.name());
+        return count == null ? 0 : count;
+    }
 }

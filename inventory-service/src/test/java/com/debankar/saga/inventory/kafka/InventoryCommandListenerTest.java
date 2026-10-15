@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -79,7 +80,7 @@ class InventoryCommandListenerTest {
         SeatHoldService seatHoldService = new SeatHoldService(
                 jdbcTemplate, new DataSourceTransactionManager(dataSource), Duration.ofMinutes(5));
         IdempotentConsumer idempotentConsumer = new IdempotentConsumer(
-                new InboxDao(jdbcTemplate), new TransactionTemplate(new DataSourceTransactionManager(dataSource)));
+                new InboxDao(jdbcTemplate), new TransactionTemplate(new DataSourceTransactionManager(dataSource)), new SimpleMeterRegistry());
         return new InventoryCommandListener(seatHoldService, idempotentConsumer, new OutboxDao(jdbcTemplate), objectMapper);
     }
 
